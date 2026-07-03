@@ -46,6 +46,7 @@
 
   .stage{
     height:100vh;
+    height:100dvh;
     width:100vw;
     display:flex;
     flex-direction:column;
@@ -66,10 +67,17 @@
 
   h1 span{ color:var(--accent); }
 
-  #book{
+  #bookWrap{
     position:relative;
+  }
+
+  #book{
+    position:absolute;
+    top:0;
+    left:0;
     overflow:hidden;
     box-shadow: 0 40px 90px rgba(0,0,0,0.6);
+    transform-origin: top left;
   }
 
   .page{
@@ -275,7 +283,7 @@
 
 <div class="stage">
   <h1>Emilio Álvarez <span>&mdash;</span> Goalkeeper Coach</h1>
-  <div id="book"></div>
+  <div id="bookWrap"><div id="book"></div></div>
   <div class="controls">
     <button id="prevBtn" aria-label="Página anterior">&#10094;</button>
     <span id="pageIndicator">&nbsp;</span>
@@ -286,12 +294,15 @@
 <script src="pages_data.js"></script>
 <script>
 const bookEl = document.getElementById("book");
+const bookWrapEl = document.getElementById("bookWrap");
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
 const pageIndicator = document.getElementById("pageIndicator");
 const statusEl = document.getElementById("status");
 
 let pageFlip = null;
+let bookNaturalW = 0;
+let bookNaturalH = 0;
 
 function getNaturalSize(src){
   return new Promise((resolve) => {
@@ -301,20 +312,25 @@ function getNaturalSize(src){
   });
 }
 
-let bookAspect = null;
-
-function buildBook(images, aspect){
-  bookAspect = aspect;
-
-  // En horizontal con poca altura reservamos mucho menos espacio para
-  // título/controles, para que el libro pueda ocupar casi toda la pantalla
-  // como UNA sola página grande en vez de encogerse a dos pequeñas.
+// Calcula cuánto espacio hay disponible ahora mismo para el libro, dejando
+// aire para título/controles/botones (menos en horizontal con poca altura).
+function availableSpace(){
   const shortLandscape = window.innerHeight <= 480 && window.innerWidth > window.innerHeight;
   const margin = shortLandscape ? 16 : 40;
   const reserved = shortLandscape ? 56 : 140;
+  return {
+    w: window.innerWidth - margin,
+    h: window.innerHeight - reserved
+  };
+}
 
-  const maxW = window.innerWidth - margin;
-  const maxH = window.innerHeight - reserved;
+function buildBook(images, aspect){
+  // El libro se crea UNA sola vez, a un tamaño fijo "natural" basado en el
+  // espacio disponible en el momento de cargar la página. A partir de ahí,
+  // los cambios de orientación/tamaño solo lo escalan visualmente con CSS
+  // (ver applyScale) — nunca se destruye ni se reconstruye la librería,
+  // que es lo que estaba rompiéndose antes.
+  const { w: maxW, h: maxH } = availableSpace();
 
   let pageW = maxW;
   let pageH = pageW / aspect;
@@ -322,6 +338,9 @@ function buildBook(images, aspect){
     pageH = maxH;
     pageW = pageH * aspect;
   }
+
+  bookNaturalW = Math.round(pageW);
+  bookNaturalH = Math.round(pageH);
 
   images.forEach((src) => {
     const pageDiv = document.createElement("div");
@@ -335,8 +354,8 @@ function buildBook(images, aspect){
   });
 
   pageFlip = new St.PageFlip(bookEl, {
-    width: Math.round(pageW),
-    height: Math.round(pageH),
+    width: bookNaturalW,
+    height: bookNaturalH,
     size: "fixed",
     drawShadow: true,
     maxShadowOpacity: 0.5,
@@ -344,7 +363,6 @@ function buildBook(images, aspect){
     mobileScrollSupport: true,
     useMouseEvents: true,
     flippingTime: 700,
-    // Fuerza siempre una sola página grande, nunca dos páginas lado a lado.
     usePortrait: true
   });
 
@@ -360,7 +378,21 @@ function buildBook(images, aspect){
   });
 
   updateIndicator();
+  applyScale();
   statusEl.classList.add("hidden");
+}
+
+// Reescala visualmente #book (que internamente sigue teniendo su tamaño fijo
+// original, para que la librería no se entere de nada) para que quepa en el
+// espacio disponible ahora mismo, y ajusta #bookWrap para que el layout
+// (flexbox) reserve exactamente ese hueco visual, ni más ni menos.
+function applyScale(){
+  if(!bookNaturalW || !bookNaturalH) return;
+  const { w: maxW, h: maxH } = availableSpace();
+  const scale = Math.min(maxW / bookNaturalW, maxH / bookNaturalH);
+  bookEl.style.transform = `scale(${scale})`;
+  bookWrapEl.style.width = Math.round(bookNaturalW * scale) + "px";
+  bookWrapEl.style.height = Math.round(bookNaturalH * scale) + "px";
 }
 
 function updateIndicator(){
@@ -371,16 +403,10 @@ function updateIndicator(){
   nextBtn.disabled = current === total;
 }
 
-// Reconstruir el libro "en caliente" al girar el móvil daba problemas (la
-// librería no soporta bien destruirse y recrearse sobre la marcha). Es
-// mucho más fiable recargar la página: así siempre arranca desde cero, ya
-// con las medidas correctas para la nueva orientación.
-let lastOrientation = window.innerWidth > window.innerHeight ? "landscape" : "portrait";
+let resizeTimer = null;
 window.addEventListener("resize", () => {
-  const now = window.innerWidth > window.innerHeight ? "landscape" : "portrait";
-  if(now !== lastOrientation){
-    location.reload();
-  }
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(applyScale, 150);
 });
 
 (async function init(){
