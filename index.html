@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emilio Álvarez — Goalkeeper Coach</title>
+
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg-top:#101624;
+    --bg-bottom:#05070c;
+    --paper:#faf8f3;
+    --accent:#3a6bd8;
+    --muted:#8a93a6;
+  }
+
+  *{ box-sizing:border-box; }
+
+  /* La libreria page-flip.js calcula tamaños internos asumiendo content-box.
+     El box-sizing:border-box global de arriba rompe sus cálculos de posición
+     y produce el efecto de "doblado" duplicado y desplazado hacia abajo.
+     Se excluyen sus elementos internos de la regla global. */
+  .stf__parent,
+  .stf__parent *,
+  .stf__wrapper,
+  .stf__wrapper *,
+  .stf__block,
+  .stf__block *,
+  [class*="stf__"]{
+    box-sizing: content-box;
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    background: radial-gradient(ellipse at 50% 15%, var(--bg-top), var(--bg-bottom) 78%);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color:#eee;
+    overflow:hidden;
+  }
+
+  .stage{
+    height:100vh;
+    width:100vw;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    padding:16px;
+  }
+
+  h1{
+    margin:0;
+    font-weight:600;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    font-size:13px;
+    color:var(--muted);
+  }
+
+  h1 span{ color:var(--accent); }
+
+  #book{
+    position:relative;
+    overflow:hidden;
+    box-shadow: 0 40px 90px rgba(0,0,0,0.6);
+  }
+
+  .page{
+    position:absolute;
+    top:0;
+    left:0;
+    background:var(--paper);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+
+  .page img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    display:block;
+    -webkit-user-drag:none;
+  }
+
+  .contact-fab{
+    position:fixed;
+    left:max(16px, env(safe-area-inset-left));
+    bottom:max(16px, env(safe-area-inset-bottom));
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    z-index:9999;
+    max-width:calc(100vw - 32px);
+  }
+
+  .fab-btn{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    height:52px;
+    padding-right:20px;
+    border-radius:26px;
+    background:linear-gradient(135deg,#1e3a8a,#3a6bd8);
+    color:#fff;
+    text-decoration:none;
+    box-shadow:0 6px 18px rgba(0,0,0,0.5);
+    transition: transform .2s ease;
+    white-space:nowrap;
+    max-width:100%;
+    overflow:hidden;
+  }
+
+  .fab-btn:hover{ transform:scale(1.04); }
+  .fab-btn:active{ transform:scale(0.97); }
+
+  .fab-icon{
+    width:52px;
+    height:52px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+
+  .fab-icon svg{ width:24px; height:24px; }
+
+  .fab-text{
+    font-family:'Open Sans', "Segoe UI", Arial, sans-serif;
+    font-weight:600;
+    font-size:14px;
+    color:#fff;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  /* Móvil en horizontal: poca altura disponible. Achicamos todo lo que no
+     sea el propio libro (título, controles, botones) y pasamos los botones
+     a solo-icono arriba a la derecha, para que nada se tape con el libro. */
+  @media (max-height:480px) and (orientation:landscape){
+    .stage{ gap:6px; padding:6px; }
+    h1{ font-size:10px; }
+    .controls{ font-size:11px; gap:10px; }
+    button{ width:32px; height:32px; font-size:13px; }
+    #pageIndicator{ min-width:48px; }
+
+    .contact-fab{
+      left:auto;
+      right:max(10px, env(safe-area-inset-right));
+      top:max(10px, env(safe-area-inset-top));
+      bottom:auto;
+      flex-direction:row;
+      gap:8px;
+    }
+    .fab-btn{
+      height:36px;
+      padding-right:0;
+      width:36px;
+    }
+    .fab-icon{ width:36px; height:36px; }
+    .fab-icon svg{ width:18px; height:18px; }
+    .fab-text{ display:none; }
+  }
+
+  .controls{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    font-size:13px;
+    color:var(--muted);
+    letter-spacing:0.04em;
+  }
+
+  button{
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.18);
+    color:#eee;
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    cursor:pointer;
+    font-size:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: border-color .2s, transform .15s, background .2s;
+  }
+
+  button:hover{
+    border-color:var(--accent);
+    background:rgba(58,107,216,0.15);
+  }
+
+  button:active{ transform:scale(0.92); }
+
+  button:disabled{
+    opacity:0.3;
+    cursor:default;
+  }
+
+  #pageIndicator{
+    min-width:64px;
+    text-align:center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #status{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:10px;
+    background:var(--bg-bottom);
+    z-index:50;
+    font-size:12px;
+    letter-spacing:0.08em;
+    color:var(--muted);
+    text-transform:uppercase;
+    transition:opacity .35s ease;
+  }
+
+  .spinner{
+    width:26px;
+    height:26px;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,0.15);
+    border-top-color: var(--accent);
+    animation: spin 0.9s linear infinite;
+  }
+
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  #status.hidden{ opacity:0; pointer-events:none; }
+</style>
+</head>
+<body>
+
+<div id="status">
+  <div class="spinner"></div>
+  <div>Cargando…</div>
+</div>
+
+<div class="contact-fab">
+  <a class="fab-btn" href="https://mail.google.com/mail/?view=cm&fs=1&to=emialvarezcoach@gmail.com" target="_blank" rel="noopener noreferrer" aria-label="Enviar correo a Emilio Álvarez">
+    <span class="fab-icon">
+      <svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="24" y="56" width="208" height="144" rx="8"/>
+        <polyline points="24,64 128,148 232,64"/>
+      </svg>
+    </span>
+    <span class="fab-text">emialvarezcoach@gmail.com</span>
+  </a>
+  <a class="fab-btn" href="https://www.instagram.com/emilioalvarezcoach/" target="_blank" rel="noopener noreferrer" aria-label="Instagram de Emilio Álvarez">
+    <span class="fab-icon">
+      <svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="40" y="40" width="176" height="176" rx="48"/>
+        <circle cx="128" cy="128" r="40"/>
+        <circle cx="176" cy="80" r="8" fill="currentColor" stroke="none"/>
+      </svg>
+    </span>
+    <span class="fab-text">@emilioalvarezcoach</span>
+  </a>
+</div>
+
+<div class="stage">
+  <h1>Emilio Álvarez <span>&mdash;</span> Goalkeeper Coach</h1>
+  <div id="book"></div>
+  <div class="controls">
+    <button id="prevBtn" aria-label="Página anterior">&#10094;</button>
+    <span id="pageIndicator">&nbsp;</span>
+    <button id="nextBtn" aria-label="Página siguiente">&#10095;</button>
+  </div>
+</div>
+
+<script src="pages_data.js"></script>
+<script>
+const bookEl = document.getElementById("book");
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const pageIndicator = document.getElementById("pageIndicator");
+const statusEl = document.getElementById("status");
+
+let pageFlip = null;
+
+function getNaturalSize(src){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.src = src;
+  });
+}
+
+let bookAspect = null;
+
+function buildBook(images, aspect){
+  bookAspect = aspect;
+
+  // Si ya había un libro construido (p.ej. al girar la pantalla), lo
+  // destruimos y limpiamos antes de reconstruirlo con el tamaño nuevo.
+  if(pageFlip){
+    try{ pageFlip.destroy(); }catch(err){ /* algunas versiones no lo traen */ }
+    pageFlip = null;
+  }
+  bookEl.innerHTML = "";
+  bookEl.style.width = "";
+  bookEl.style.height = "";
+
+  // En horizontal con poca altura reservamos mucho menos espacio para
+  // título/controles, para que el libro pueda ocupar casi toda la pantalla
+  // como UNA sola página grande en vez de encogerse a dos pequeñas.
+  const shortLandscape = window.innerHeight <= 480 && window.innerWidth > window.innerHeight;
+  const margin = shortLandscape ? 16 : 40;
+  const reserved = shortLandscape ? 56 : 140;
+
+  const maxW = window.innerWidth - margin;
+  const maxH = window.innerHeight - reserved;
+
+  let pageW = maxW;
+  let pageH = pageW / aspect;
+  if(pageH > maxH){
+    pageH = maxH;
+    pageW = pageH * aspect;
+  }
+
+  images.forEach((src) => {
+    const pageDiv = document.createElement("div");
+    pageDiv.className = "page";
+    const imgEl = document.createElement("img");
+    imgEl.src = src;
+    imgEl.draggable = false;
+    pageDiv.appendChild(imgEl);
+
+    bookEl.appendChild(pageDiv);
+  });
+
+  pageFlip = new St.PageFlip(bookEl, {
+    width: Math.round(pageW),
+    height: Math.round(pageH),
+    size: "fixed",
+    drawShadow: true,
+    maxShadowOpacity: 0.5,
+    showCover: false,
+    mobileScrollSupport: true,
+    useMouseEvents: true,
+    flippingTime: 700,
+    // Fuerza siempre una sola página grande, nunca dos páginas lado a lado.
+    usePortrait: true
+  });
+
+  pageFlip.loadFromHTML(document.querySelectorAll(".page"));
+  pageFlip.on("flip", updateIndicator);
+
+  updateIndicator();
+  statusEl.classList.add("hidden");
+}
+
+function updateIndicator(){
+  const current = pageFlip.getCurrentPageIndex() + 1;
+  const total = pageFlip.getPageCount();
+  pageIndicator.textContent = `${current} / ${total}`;
+  prevBtn.disabled = current === 1;
+  nextBtn.disabled = current === total;
+}
+
+prevBtn.addEventListener("click", () => pageFlip && pageFlip.flipPrev());
+nextBtn.addEventListener("click", () => pageFlip && pageFlip.flipNext());
+
+document.addEventListener("keydown", (e) => {
+  if(!pageFlip) return;
+  if(e.key === "ArrowLeft") pageFlip.flipPrev();
+  if(e.key === "ArrowRight") pageFlip.flipNext();
+});
+
+// Al girar la pantalla (o cambiar de tamaño) reconstruimos el libro con las
+// medidas nuevas, para que nunca se quede atascado en un tamaño pensado
+// para la orientación anterior (esto era lo que producía "dos páginas
+// pequeñas" en horizontal).
+let resizeTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if(bookAspect) buildBook(EMBEDDED_PAGES, bookAspect);
+  }, 250);
+});
+
+(async function init(){
+  try{
+    const { w, h } = await getNaturalSize(EMBEDDED_PAGES[0]);
+    buildBook(EMBEDDED_PAGES, w / h);
+  }catch(err){
+    console.error("Error al iniciar el libro:", err);
+    statusEl.classList.add("hidden");
+  }
+})();
+</script>
+
+</body>
+</html>
